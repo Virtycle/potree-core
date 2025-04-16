@@ -1,6 +1,7 @@
 node_modules/
 .idea/
 dist/
+example/data/
 
 package-lock.json
 
