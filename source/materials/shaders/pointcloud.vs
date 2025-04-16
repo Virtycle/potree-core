@@ -1,5 +1,3 @@
-#version 300 es
-
 precision highp float;
 precision highp int;
 
@@ -26,6 +24,10 @@ uniform float screenWidth;
 uniform float screenHeight;
 uniform float fov;
 uniform float spacing;
+
+uniform bool useOrthographicCamera;
+uniform float orthoWidth;
+uniform float orthoHeight;
 
 #if defined use_clip_box
 	uniform mat4 clipBoxes[max_clip_boxes];
@@ -89,13 +91,11 @@ uniform sampler2D depthMap;
 	out float vLinearDepth;
 #endif
 
-#if !defined(paraboloid_point_shape) && defined(use_edl)
+#ifdef use_edl
 	out float vLogDepth;
 #endif
 
-#if defined(color_type_phong) && (MAX_POINT_LIGHTS > 0 || MAX_DIR_LIGHTS > 0) || defined(paraboloid_point_shape)
-	out vec3 vViewPosition;
-#endif
+out vec3 vViewPosition;
 
 #if defined(weighted_splats) || defined(paraboloid_point_shape)
 	out float vRadius;
@@ -413,15 +413,12 @@ vec3 getCompositeColor() {
 	}
 #endif
 
-
 void main() {
 	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 
 	gl_Position = projectionMatrix * mvPosition;
 
-	#if defined(color_type_phong) && (MAX_POINT_LIGHTS > 0 || MAX_DIR_LIGHTS > 0) || defined(paraboloid_point_shape)
-		vViewPosition = mvPosition.xyz;
-	#endif
+	vViewPosition = mvPosition.xyz;
 
 	#if defined weighted_splats
 		vLinearDepth = gl_Position.w;
@@ -431,7 +428,7 @@ void main() {
 		vNormal = normalize(normalMatrix * normal);
 	#endif
 
-	#if !defined(paraboloid_point_shape) && defined(use_edl)
+	#ifdef use_edl
 		vLogDepth = log2(-mvPosition.z);
 	#endif
 
@@ -442,14 +439,27 @@ void main() {
 	float pointSize = 1.0;
 	float slope = tan(fov / 2.0);
 	float projFactor =  -0.5 * screenHeight / (slope * mvPosition.z);
+	float scale = length(
+		modelViewMatrix * vec4(0, 0, 0, 1) -
+		modelViewMatrix * vec4(spacing, 0, 0, 1)
+	) / spacing;
+	projFactor = projFactor * scale;
 
 	#if defined fixed_point_size
 		pointSize = size;
 	#elif defined attenuated_point_size
-		pointSize = size * spacing * projFactor;
+		if (useOrthographicCamera){
+			pointSize = size;
+		} else {
+			pointSize = size * spacing * projFactor;
+		}
 	#elif defined adaptive_point_size
 		float worldSpaceSize = 2.0 * size * spacing / getPointSizeAttenuation();
-		pointSize = worldSpaceSize * projFactor;
+		if(useOrthographicCamera) {
+			pointSize = (worldSpaceSize / orthoWidth) * screenWidth;
+		} else {
+			pointSize = worldSpaceSize * projFactor;
+		}
 	#endif
 
 	pointSize = max(minSize, pointSize);
@@ -569,17 +579,25 @@ void main() {
 			insideAny = insideAny || inside;
 		}
 
-		if (!insideAny) {
-			#if defined clip_outside
+		#if defined clip_outside
+			if (!insideAny) {
 				gl_Position = vec4(1000.0, 1000.0, 1000.0, 1.0);
-			#elif defined clip_highlight_inside && !defined(color_type_depth)
+			}
+		#elif defined clip_inside
+			if (insideAny) {
+				gl_Position = vec4(1000.0, 1000.0, 1000.0, 1.0);
+			}
+		#elif defined clip_highlight_inside && !defined(color_type_depth)
+			if (!insideAny) {
 				float c = (vColor.r + vColor.g + vColor.b) / 6.0;
-			#endif
-		} else {
-			#if defined clip_highlight_inside
+			}
+		#endif
+
+		#if defined clip_highlight_inside
+			if (insideAny) {
 				vColor.r += 0.5;
-			#endif
-		}
+			}
+		#endif
 	#endif
 
 	// #ifdef color_encoding_sRGB

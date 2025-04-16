@@ -3,10 +3,12 @@ import {
 	BufferGeometry,
 	Camera,
 	Color,
+	GLSL3,
 	LessEqualDepth,
 	Material,
 	NearestFilter,
 	NoBlending,
+	OrthographicCamera,
 	PerspectiveCamera,
 	RawShaderMaterial,
 	Scene,
@@ -80,6 +82,10 @@ export interface IPointCloudMaterialUniforms {
   rgbGamma: IUniform<number>;
   screenHeight: IUniform<number>;
   screenWidth: IUniform<number>;
+  orthoHeight: IUniform<number>;
+  orthoWidth: IUniform<number>;
+  useOrthographicCamera: IUniform<boolean>;
+  far: IUniform<number>;
   size: IUniform<number>;
   spacing: IUniform<number>;
   toModel: IUniform<number[]>;
@@ -144,6 +150,7 @@ const COLOR_DEFS = {
 const CLIP_MODE_DEFS = {
 	[ClipMode.DISABLED]: 'clip_disabled',
 	[ClipMode.CLIP_OUTSIDE]: 'clip_outside',
+	[ClipMode.CLIP_INSIDE]: 'clip_inside',
 	[ClipMode.HIGHLIGHT_INSIDE]: 'clip_highlight_inside'
 };
 
@@ -212,6 +219,10 @@ export class PointCloudMaterial extends RawShaderMaterial
 		rgbGamma: makeUniform('f', DEFAULT_RGB_GAMMA),
 		screenHeight: makeUniform('f', 1.0),
 		screenWidth: makeUniform('f', 1.0),
+		useOrthographicCamera: makeUniform('b', false),
+		orthoHeight: makeUniform('f', 1.0),
+		orthoWidth: makeUniform('f', 1.0),
+		far: makeUniform('f', 1000.0),
 		size: makeUniform('f', 1),
 		spacing: makeUniform('f', 1.0),
 		toModel: makeUniform('Matrix4f', []),
@@ -269,6 +280,14 @@ export class PointCloudMaterial extends RawShaderMaterial
   @uniform('screenHeight') screenHeight!: number;
 
   @uniform('screenWidth') screenWidth!: number;
+
+  @uniform('orthoWidth') orthoWidth!: number;
+
+  @uniform('orthoHeight') orthoHeight!: number;
+
+  @uniform('useOrthographicCamera') useOrthographicCamera!: boolean;
+  
+  @uniform('far') far!: number;
 
   @uniform('size') size!: number;
 
@@ -328,6 +347,8 @@ export class PointCloudMaterial extends RawShaderMaterial
   @requiresShaderUpdate() inputColorEncoding: ColorEncoding = ColorEncoding.SRGB;
 
   @requiresShaderUpdate() outputColorEncoding: ColorEncoding = ColorEncoding.LINEAR;
+
+  @requiresShaderUpdate() private useLogDepth: boolean = false;
 
   attributes = {
   	position: {type: 'fv', value: []},
@@ -411,6 +432,8 @@ export class PointCloudMaterial extends RawShaderMaterial
 
   updateShaderSource(): void 
   {
+  	this.glslVersion = GLSL3;
+
   	this.vertexShader = this.applyDefines(VertShader);
   	this.fragmentShader = this.applyDefines(FragShader);
 
@@ -482,6 +505,11 @@ export class PointCloudMaterial extends RawShaderMaterial
   	{
   		define('use_edl');
   	}
+
+	if (this.useLogDepth) 
+	{
+		define('use_log_depth');
+	}
 
   	if (this.weighted) 
   	{
@@ -665,11 +693,20 @@ export class PointCloudMaterial extends RawShaderMaterial
 
   	if (camera.type === PERSPECTIVE_CAMERA) 
   	{
+  		this.useOrthographicCamera = false;
   		this.fov = (camera as PerspectiveCamera).fov * (Math.PI / 180);
+		this.far = (camera as PerspectiveCamera).far;
+		this.useLogDepth = renderer.capabilities.logarithmicDepthBuffer
   	}
-  	else 
+  	else // ORTHOGRAPHIC
   	{
+   		const orthoCamera = (camera as OrthographicCamera);
+  		this.useOrthographicCamera = true;
+  		this.orthoWidth = (orthoCamera.right - orthoCamera.left) / orthoCamera.zoom;
+  		this.orthoHeight = (orthoCamera.top - orthoCamera.bottom) / orthoCamera.zoom;
   		this.fov = Math.PI / 2; // will result in slope = 1 in the shader
+		this.far = (camera as OrthographicCamera).far;
+		this.useLogDepth = false;
   	}
   	const renderTarget = renderer.getRenderTarget();
   	if (renderTarget !== null && renderTarget instanceof WebGLRenderTarget) 
@@ -682,6 +719,7 @@ export class PointCloudMaterial extends RawShaderMaterial
   		this.screenWidth = renderer.domElement.clientWidth * pixelRatio;
   		this.screenHeight = renderer.domElement.clientHeight * pixelRatio;
   	}
+
 
   	const maxScale = Math.max(octree.scale.x, octree.scale.y, octree.scale.z);
   	this.spacing = octree.pcoGeometry.spacing * maxScale;
@@ -752,24 +790,25 @@ export class PointCloudMaterial extends RawShaderMaterial
   		material: Material,
   	) => 
   	{
-  		const pointCloudMaterial = material as PointCloudMaterial;
-  		const materialUniforms = pointCloudMaterial.uniforms;
+			if (material instanceof PointCloudMaterial) {
+				const materialUniforms = material.uniforms;
 
-  		materialUniforms.level.value = node.level;
-  		materialUniforms.isLeafNode.value = node.isLeafNode;
+				materialUniforms.level.value = node.level;
+				materialUniforms.isLeafNode.value = node.isLeafNode;
 
-  		const vnStart = pointCloudMaterial.visibleNodeTextureOffsets.get(node.name);
-  		if (vnStart !== undefined) 
-  		{
-  			materialUniforms.vnStart.value = vnStart;
-  		}
+				const vnStart = material.visibleNodeTextureOffsets.get(node.name);
+				if (vnStart !== undefined)
+				{
+					materialUniforms.vnStart.value = vnStart;
+				}
 
-  		materialUniforms.pcIndex.value =
-		pcIndex !== undefined ? pcIndex : octree.visibleNodes.indexOf(node);
+				materialUniforms.pcIndex.value =
+				pcIndex !== undefined ? pcIndex : octree.visibleNodes.indexOf(node);
 
-  		// Remove the cast to any after updating to Three.JS >= r113
-  		(material as RawShaderMaterial).uniformsNeedUpdate = true;
-  	};
+				// Remove the cast to any after updating to Three.JS >= r113
+				(material as RawShaderMaterial).uniformsNeedUpdate = true;
+			}
+		};
   }
 }
 
