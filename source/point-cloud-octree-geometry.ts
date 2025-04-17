@@ -5,6 +5,7 @@ import {PointCloudOctreeGeometryNode} from './point-cloud-octree-geometry-node';
 
 export class PointCloudOctreeGeometry 
 {
+	type = 'PointCloudOctreeGeometry';
 	public disposed: boolean = false;
 
 	public needsUpdate: boolean = true;

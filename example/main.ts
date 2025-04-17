@@ -95,7 +95,7 @@ document.body.onload = function () {
   // );
 
   loadPointCloud(
-    "/data/demo/",
+    "/data/pump/",
     "metadata.json",
   );
 

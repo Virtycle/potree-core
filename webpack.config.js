@@ -1,4 +1,5 @@
 import path from 'path';
+import TerserPlugin from 'terser-webpack-plugin';
 
 export default {
 	entry: './source/index.ts',
@@ -15,6 +16,19 @@ export default {
 			type: 'module',
 		},
 	},
+	// optimization: {
+	// 	minimize: true,
+	// 	minimizer: [new TerserPlugin({
+	// 	  terserOptions: {
+	// 		compress: false,
+	// 		mangle: false,
+	// 		format: {
+	// 			comments: true,
+	// 			beautify: true,
+	// 		  },
+	// 	  },
+	// 	})],
+	// },
 	resolve: {
 		extensions: ['.tsx', '.ts', '.js'],
 	},
