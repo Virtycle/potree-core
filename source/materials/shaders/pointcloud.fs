@@ -71,7 +71,7 @@ void main() {
 	
 	vec3 color = actualColor;
 	float depth = gl_FragCoord.z;
-
+	fragColor = vec4(color, opacity);
 	#if defined(circle_point_shape) || defined(paraboloid_point_shape) || defined (weighted_splats)
 		float u = 2.0 * gl_PointCoord.x - 1.0;
 		float v = 2.0 * gl_PointCoord.y - 1.0;
@@ -262,6 +262,12 @@ void main() {
 
 
 	#if defined(highlight_point)
+		if (vHighlight > 0.0) {
+			fragColor = highlightedPointColor;
+		}
+	#endif
+
+	#if defined(color_type_depth)
 		if (vHighlight > 0.0) {
 			fragColor = highlightedPointColor;
 		}

@@ -5,8 +5,8 @@ import {OctreeGeometryNode} from './OctreeGeometryNode';
 
 export class OctreeGeometry
 {
-	type = 'OctreeGeometry';
-	
+	type = 'OctreeGeometry' as const;
+
 	root!: OctreeGeometryNode;
 
 	url: string | null = null;

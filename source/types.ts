@@ -68,5 +68,5 @@ export interface PointCloudHit {
   pcIndex: number;
 }
 
-export type OctreeGeometryType = OctreeGeometry;
+export type OctreeGeometryType = typeof OctreeGeometry;
 export type PCOGeometry = PointCloudOctreeGeometry | OctreeGeometry;

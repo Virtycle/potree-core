@@ -206,7 +206,7 @@ export class PointCloudMaterial extends RawShaderMaterial
 		intensityBrightness: makeUniform('f', 0),
 		intensityContrast: makeUniform('f', 0),
 		intensityGamma: makeUniform('f', 1),
-		intensityRange: makeUniform('fv', [0, 65000] as [number, number]),
+		intensityRange: makeUniform('fv', [0, 255] as [number, number]),
 		isLeafNode: makeUniform('b', 0),
 		level: makeUniform('f', 0.0),
 		maxSize: makeUniform('f', DEFAULT_MAX_POINT_SIZE),
