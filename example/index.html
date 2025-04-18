@@ -176,9 +176,11 @@
                         pco.material.shape = PointShape.CIRCLE;
                         pco.material.inputColorEncoding = 0;
                         // pco.material.newFormat = true;
-                        pco.material.pointColorType = PointColorType.COLOR;
+                        pco.material.pointColorType = PointColorType.INTENSITY_GRADIENT;
                         pco.material.outputColorEncoding = 0;
                         pco.showBoundingBox = false;
+                        pco.material.newFormat = false;
+                        pco.material.updateShaderSource();
                         const { pcoGeometry } = pco;
                         const attrs = (pcoGeometry).loader.metadata.attributes || [];
                         const pos = attrs.find((item) => (item.name = 'position'));
