@@ -16,7 +16,6 @@
 		"alwaysStrict": false,
 		"target": "es2020",
 		"experimentalDecorators": true,
-		"typeRoots": ["node_modules/@types"],
 		"lib": ["es2017", "dom"],
 		"plugins": []
 	},

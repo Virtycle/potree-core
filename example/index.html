@@ -144,6 +144,11 @@
             canvas.style.height = "100%";
             document.body.appendChild(canvas);
 
+            const raycaster = new Raycaster();
+            const normalized = new Vector2();
+
+
+
             const renderer = new WebGLRenderer({
                 canvas: canvas,
                 alpha: true,
@@ -154,6 +159,26 @@
                 preserveDrawingBuffer: false,
                 powerPreference: "high-performance",
             });
+
+            function getNormalizedPosition(event, canvas) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: ((event.clientX - rect.left) * 2) / rect.width - 1,
+                    y: ((event.clientY - rect.top) * -2) / rect.height + 1,
+                };
+            }
+
+            canvas.ondblclick = function (event) {
+                const posNorm = getNormalizedPosition(event, renderer.domElement);
+                raycaster.setFromCamera(new Vector2(posNorm.x, posNorm.y), camera);
+                // normalized.set(
+                //     (event.clientX / canvas.width) * 2 - 1,
+                //     -(event.clientY / canvas.height) * 2 + 1
+                // );
+                // raycaster.setFromCamera(normalized, camera);
+                const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray);
+                console.log(pickPoint);
+            };
 
             const controls = new OrbitControls(camera, canvas);
 
