@@ -7,14 +7,21 @@
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Potree Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Monospace;
+            font-size: 13px;
+            line-height: 24px;
+            overscroll-behavior: none;
+        }
+    </style>
 </head>
 
 <body>
-
-    <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
-
-    </div>
-
+    <div id="container"></div>
     <script type="importmap">
 		{
 			"imports": {
@@ -127,137 +134,126 @@
         import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
         import { PointCloudOctree, Potree, PointColorType, PointShape } from "../dist/index.js";
 
-        document.body.onload = function () {
-            const potree = new Potree();
-            let pointClouds = [];
+        const potree = new Potree();
+        let pointClouds = [];
 
-            // three.js
-            const scene = new Scene();
-            scene.background = new Color(0xcccccc);
-            const camera = new PerspectiveCamera(60, 1, 0.1, 10000);
-            camera.up.set(0, 0, 1);
-            const canvas = document.createElement("canvas");
-            canvas.style.position = "absolute";
-            canvas.style.top = "0px";
-            canvas.style.left = "0px";
-            canvas.style.width = "100%";
-            canvas.style.height = "100%";
-            document.body.appendChild(canvas);
+        // three.js
+        const scene = new Scene();
+        scene.background = new Color(0x000000);
+        const camera = new PerspectiveCamera(60, 1, 0.1, 10000);
+        camera.up.set(0, 0, 1);
 
-            const raycaster = new Raycaster();
-            const normalized = new Vector2();
+        const raycaster = new Raycaster();
+        const renderer = new WebGLRenderer({
+            alpha: true,
+            logarithmicDepthBuffer: false,
+            precision: "highp",
+            premultipliedAlpha: true,
+            antialias: true,
+            preserveDrawingBuffer: false,
+            powerPreference: "high-performance",
+        });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        const container = document.getElementById('container');
+        container.appendChild(renderer.domElement);
 
 
+        function getNormalizedPosition(event, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: ((event.clientX - rect.left) * 2) / rect.width - 1,
+                y: ((event.clientY - rect.top) * -2) / rect.height + 1,
+            };
+        }
 
-            const renderer = new WebGLRenderer({
-                canvas: canvas,
-                alpha: true,
-                logarithmicDepthBuffer: false,
-                precision: "highp",
-                premultipliedAlpha: true,
-                antialias: true,
-                preserveDrawingBuffer: false,
-                powerPreference: "high-performance",
+        container.ondblclick = function (event) {
+            const posNorm = getNormalizedPosition(event, renderer.domElement);
+            raycaster.setFromCamera(new Vector2(posNorm.x, posNorm.y), camera);
+            // normalized.set(
+            //     (event.clientX / canvas.width) * 2 - 1,
+            //     -(event.clientY / canvas.height) * 2 + 1
+            // );
+            // raycaster.setFromCamera(normalized, camera);
+            const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray);
+            console.log(pickPoint);
+        };
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        loadPointCloud(
+            "/example/data/demo/",
+            "metadata.json",
+        );
+        function loadPointCloud(
+            baseUrl,
+            url,
+            position,
+            rotation,
+            scale
+        ) {
+            potree
+                .loadPointCloud(url, (url) => `${baseUrl}${url}`)
+                .then(function (pco) {
+                    console.log(pco);
+                    pco.material.size = 2.0;
+                    pco.material.shape = PointShape.CIRCLE;
+                    pco.material.inputColorEncoding = 0;
+                    // pco.material.newFormat = true;
+                    pco.material.pointColorType = PointColorType.INTENSITY_GRADIENT;
+                    pco.material.outputColorEncoding = 0;
+                    // pco.showBoundingBox = false;
+                    pco.material.newFormat = false;
+                    pco.material.updateShaderSource();
+                    const { pcoGeometry } = pco;
+                    const attrs = (pcoGeometry).loader.metadata.attributes || [];
+                    const pos = attrs.find((item) => (item.name = 'position'));
+                    const box = new Box3(
+                        new Vector3(pos.min[0], pos.min[1], pos.min[2]),
+                        new Vector3(pos.max[0], pos.max[1], pos.max[2]),
+                    );
+                    const center = box.getCenter(new Vector3());
+                    camera.position.set(center.x, center.y, center.z + 60);
+                    controls.target.copy(center);
+                    controls.update();
+                    add(pco);
+                });
+        }
+
+        function add(pco) {
+            scene.add(pco);
+            pointClouds.push(pco);
+        }
+
+        function unload() {
+            pointClouds.forEach((pco) => {
+                scene.remove(pco);
+                pco.dispose();
             });
 
-            function getNormalizedPosition(event, canvas) {
-                const rect = canvas.getBoundingClientRect();
-                return {
-                    x: ((event.clientX - rect.left) * 2) / rect.width - 1,
-                    y: ((event.clientY - rect.top) * -2) / rect.height + 1,
-                };
-            }
+            pointClouds = [];
+        }
 
-            canvas.ondblclick = function (event) {
-                const posNorm = getNormalizedPosition(event, renderer.domElement);
-                raycaster.setFromCamera(new Vector2(posNorm.x, posNorm.y), camera);
-                // normalized.set(
-                //     (event.clientX / canvas.width) * 2 - 1,
-                //     -(event.clientY / canvas.height) * 2 + 1
-                // );
-                // raycaster.setFromCamera(normalized, camera);
-                const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray);
-                console.log(pickPoint);
-            };
+        function loop() {
+            potree.updatePointClouds(pointClouds, camera, renderer);
 
-            const controls = new OrbitControls(camera, canvas);
+            controls.update();
+            renderer.render(scene, camera);
 
-            loadPointCloud(
-                "/example/data/demo/",
-                "metadata.json",
-            );
-            function loadPointCloud(
-                baseUrl,
-                url,
-                position,
-                rotation,
-                scale
-            ) {
-                potree
-                    .loadPointCloud(url, (url) => `${baseUrl}${url}`)
-                    .then(function (pco) {
-                        console.log(pco);
-                        pco.material.size = 1.0;
-                        pco.material.shape = PointShape.CIRCLE;
-                        pco.material.inputColorEncoding = 0;
-                        // pco.material.newFormat = true;
-                        pco.material.pointColorType = PointColorType.INTENSITY_GRADIENT;
-                        pco.material.outputColorEncoding = 0;
-                        pco.showBoundingBox = false;
-                        pco.material.newFormat = false;
-                        pco.material.updateShaderSource();
-                        const { pcoGeometry } = pco;
-                        const attrs = (pcoGeometry).loader.metadata.attributes || [];
-                        const pos = attrs.find((item) => (item.name = 'position'));
-                        const box = new Box3(
-                            new Vector3(pos.min[0], pos.min[1], pos.min[2]),
-                            new Vector3(pos.max[0], pos.max[1], pos.max[2]),
-                        );
-                        const center = box.getCenter(new Vector3());
-                        camera.position.set(center.x, center.y, center.z + 60);
-                        controls.target.copy(center);
-                        controls.update();
-                        add(pco);
-                    });
-            }
+            requestAnimationFrame(loop);
+        }
 
-            function add(pco) {
-                scene.add(pco);
-                pointClouds.push(pco);
-            }
+        loop();
 
-            function unload() {
-                pointClouds.forEach((pco) => {
-                    scene.remove(pco);
-                    pco.dispose();
-                });
-
-                pointClouds = [];
-            }
-
-            function loop() {
-                potree.updatePointClouds(pointClouds, camera, renderer);
-
-                controls.update();
-                renderer.render(scene, camera);
-
-                requestAnimationFrame(loop);
-            }
-
-            loop();
-
-            document.body.onresize = function () {
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-
-                renderer.setSize(width, height);
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-            };
-
-            // @ts-ignore
-            document.body.onresize();
+        document.body.onresize = function () {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
         };
+
+        // @ts-ignore
+        document.body.onresize();
 
 
     </script>
