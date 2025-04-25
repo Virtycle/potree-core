@@ -20,6 +20,7 @@ import {ClipMode, PointCloudMaterial, PointColorType} from './materials';
 import {PointCloudOctree} from './point-cloud-octree';
 import {PointCloudOctreeNode} from './point-cloud-octree-node';
 import {PickPoint, PointCloudHit} from './types';
+import {ColorEncoding} from './materials/color-encoding';
 import {clamp} from './utils/math';
 
 export interface PickParams {
@@ -183,7 +184,6 @@ export class PointCloudOctreePicker
 			{
 				continue;
 			}
-
 			PointCloudOctreePicker.updatePickMaterial(pickMaterial, octree.material, params);
 			pickMaterial.updateMaterial(octree, nodes, camera, renderer);
 
@@ -272,6 +272,8 @@ export class PointCloudOctreePicker
 				throw Error('More than 255 nodes for pick are not supported.');
 			}
 			tempNode.onBeforeRender = PointCloudMaterial.makeOnBeforeRender(octree, node, nodeIndex);
+			// const c = sceneNode.geometry.getAttribute('position').count;
+			// console.log('nodes', c, i);
 
 			tempNodes.push(tempNode);
 		}
@@ -293,6 +295,8 @@ export class PointCloudOctreePicker
 		pickMaterial.classification = nodeMaterial.classification;
 		pickMaterial.useFilterByNormal = nodeMaterial.useFilterByNormal;
 		pickMaterial.filterByNormalThreshold = nodeMaterial.filterByNormalThreshold;
+		pickMaterial.outputColorEncoding = ColorEncoding.LINEAR;
+		pickMaterial.inputColorEncoding = ColorEncoding.LINEAR;
 
 		if (params.pickOutsideClipRegion) 
 		{
@@ -305,6 +309,7 @@ export class PointCloudOctreePicker
 				nodeMaterial.clipMode === ClipMode.CLIP_OUTSIDE ? nodeMaterial.clipBoxes : [],
 			);
 		}
+		pickMaterial.updateShaderSource();
 	}
 
 	private static updatePickRenderTarget(
@@ -348,8 +353,12 @@ export class PointCloudOctreePicker
           Math.pow(u - (pickWndSize - 1) / 2, 2) + Math.pow(v - (pickWndSize - 1) / 2, 2);
 
 				const pcIndex = pixels[4 * offset + 3];
-				pixels[4 * offset + 3] = 0;
-				const pIndex = ibuffer[offset];
+				// pixels[4 * offset + 3] = 0;
+				pixels.set([0], 4 * offset + 3);
+				// const pIndex = pixels[4 * offset] + pixels[4 * offset + 1] * 256 + pixels[4 * offset + 2] * 256 * 256;
+				const pIndex = ibuffer.at(offset);
+				// const pIndexII = ibuffer[offset];
+				// console.log(pIndex, pcIndex - 1);
 
 				if (pcIndex > 0 && distance < min) 
 				{
@@ -361,6 +370,7 @@ export class PointCloudOctreePicker
 				}
 			}
 		}
+		// console.log('end', hit.pIndex, hit.pcIndex);
 		return hit;
 	}
 
