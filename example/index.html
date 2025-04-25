@@ -32,89 +32,6 @@
 	</script>
 
     <script type="module">
-
-        // import * as Potree from "../dist/index.js";
-
-        // import { Scene, PerspectiveCamera, WebGLRenderer, Color, Mesh, SphereGeometry, MeshBasicMaterial, MeshPhongMaterial, Vector3, AmbientLight, PlaneGeometry, AxesHelper, Points } from "three";
-        // import { OrbitControls } from "three/examples/jsm/OrbitControls.js";
-        // Potree.setBaseUrl('http://127.0.0.1:5500/dist/potree');
-        // const parent = document.querySelector(".potree_container");
-        // const scene = new Scene();
-        // scene.background = new Color(0xcccccc);
-
-        // const renderer = new WebGLRenderer({
-        //     alpha: true,
-        //     logarithmicDepthBuffer: false,
-        //     precision: "highp",
-        //     premultipliedAlpha: true,
-        //     antialias: true,
-        //     preserveDrawingBuffer: false,
-        //     powerPreference: "high-performance",
-        // });
-        // renderer.setPixelRatio(window.devicePixelRatio);
-        // renderer.setSize(window.innerWidth, window.innerHeight);
-        // const aspect = window.innerWidth / window.innerHeight;
-        // const camera = new PerspectiveCamera(90, aspect, 0.1, 100000);
-        // parent.appendChild(renderer.domElement);
-        // camera.up.set(0, 0, 1);
-        // camera.position.set(-1700, -6800, 1800);
-
-        // const controls = new OrbitControls(camera, renderer.domElement);
-        // controls.update();
-        // const axesHelper = new AxesHelper(25);
-        // // const light = new AmbientLight(0xffffff, .5);
-        // // dirLight.target.position.copy(camera.position);
-        // // dirLight.add(dirLight.target);
-        // // dirLight.lookAt(- 1, - 1, 0);
-        // // dirLight.name = 'DirectionalLight';
-        // // scene.add(light);
-        // const material = new MeshBasicMaterial({ color: new Color(0xdddddd) });
-        // const geo = new PlaneGeometry(1000, 1000).toNonIndexed();
-        // const object = new Mesh(geo, material);
-        // const points = new Points(geo);
-        // points.material.color.set(new Color(0x0000ff));
-
-        // scene.add(object);
-        // scene.add(points);
-        // scene.add(axesHelper);
-        // const pointClouds = [];
-
-        // Potree.loadPointCloud("../pointclouds/metadata.json", "ys_example", function (e) {
-        //     // Potree.loadPointCloud("../pointclouds/lion/cloud.js", "ys_example", function (e) {
-        //     scene.add(e.pointcloud);
-        //     pointClouds.push(e.pointcloud);
-        //     // e.pointcloud.material.activeAttributeName = 'intensity';
-        //     const center = new Vector3(-2000, -7200, 1000);
-        //     // camera.zoomTo(e.pointcloud)
-        //     // const center = new Vector3(0, 0, 0);
-        //     // object.position.copy(center);
-        //     // camera.lookAt(center);
-        //     controls.target.copy(center);
-        //     controls.update();
-        //     let material = e.pointcloud.material;
-        //     // material.size = 1;
-        //     // material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-        // });
-        // function loop() {
-        //     Potree.updatePointClouds(pointClouds, camera, renderer);
-
-        //     controls.update();
-        //     renderer.render(scene, camera);
-
-        //     requestAnimationFrame(loop);
-        // };
-        // loop();
-
-        // function onWindowResize() {
-
-        //     camera.aspect = window.innerWidth / window.innerHeight;
-        //     camera.updateProjectionMatrix();
-
-        //     renderer.setSize(window.innerWidth, window.innerHeight);
-
-        // }
-
-        // window.addEventListener('resize', onWindowResize);
         import {
             AmbientLight,
             BoxGeometry,
@@ -174,7 +91,7 @@
             //     -(event.clientY / canvas.height) * 2 + 1
             // );
             // raycaster.setFromCamera(normalized, camera);
-            const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray);
+            const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray, {pickWindowSize: 3});
             console.log(pickPoint);
         };
 
@@ -195,7 +112,7 @@
                 .loadPointCloud(url, (url) => `${baseUrl}${url}`)
                 .then(function (pco) {
                     console.log(pco);
-                    pco.material.size = 2.0;
+                    pco.material.size = 1.0;
                     pco.material.shape = PointShape.CIRCLE;
                     pco.material.inputColorEncoding = 0;
                     // pco.material.newFormat = true;

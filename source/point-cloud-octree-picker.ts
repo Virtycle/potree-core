@@ -284,6 +284,7 @@ export class PointCloudOctreePicker
 		params: Partial<PickParams>,
 	): void 
 	{
+		pickMaterial.newFormat = nodeMaterial.newFormat;
 		pickMaterial.pointSizeType = nodeMaterial.pointSizeType;
 		pickMaterial.shape = nodeMaterial.shape;
 		pickMaterial.size = nodeMaterial.size;
@@ -456,7 +457,7 @@ export class PointCloudOctreePicker
 		const scene = new Scene();
 
     // @ts-ignore
-		scene.autoUpdate = false;
+		scene.matrixWorldAutoUpdate = false;
 
 		const material = new PointCloudMaterial();
 		material.pointColorType = PointColorType.POINT_INDEX;
