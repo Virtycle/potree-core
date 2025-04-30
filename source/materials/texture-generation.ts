@@ -7,8 +7,8 @@ import {
 	RGBAFormat,
 	Texture
 } from 'three';
-import {IClassification, IGradient} from '../materials/types';
-import {isBrowser} from '../utils/utils';
+import { IClassification, IGradient } from '../materials/types';
+import { isBrowser } from '../utils/utils';
 
 /**
  * Generates a texture from a color.
@@ -18,8 +18,7 @@ import {isBrowser} from '../utils/utils';
  * @param color - The color of the texture.
  * @returns The generated texture.
  */
-export function generateDataTexture(width: number, height: number, color: Color): Texture 
-{
+export function generateDataTexture(width: number, height: number, color: Color): Texture {
 	const size = width * height;
 	const data = new Uint8Array(4 * size);
 
@@ -27,8 +26,7 @@ export function generateDataTexture(width: number, height: number, color: Color)
 	const g = Math.floor(color.g * 255);
 	const b = Math.floor(color.b * 255);
 
-	for (let i = 0; i < size; i++) 
-	{
+	for (let i = 0; i < size; i++) {
 		data[i * 3] = r;
 		data[i * 3 + 1] = g;
 		data[i * 3 + 2] = b;
@@ -47,12 +45,11 @@ export function generateDataTexture(width: number, height: number, color: Color)
  * @param gradient - The gradient to generate the texture from.
  * @returns The generated texture.
  */
-export function generateGradientTexture(gradient: IGradient): Texture 
-{
+export function generateGradientTexture(gradient: IGradient): Texture {
 	if (!isBrowser()) {
 		return new Texture();
 	}
-	
+
 	const size = 64;
 
 	const canvas = document.createElement('canvas');
@@ -64,8 +61,7 @@ export function generateGradientTexture(gradient: IGradient): Texture
 	context.rect(0, 0, size, size);
 	const ctxGradient = context.createLinearGradient(0, 0, size, size);
 
-	for (let i = 0; i < gradient.length; i++) 
-	{
+	for (let i = 0; i < gradient.length; i++) {
 		const step = gradient[i];
 		ctxGradient.addColorStop(step[0], `#${step[1].getHexString()}`);
 	}
@@ -74,6 +70,8 @@ export function generateGradientTexture(gradient: IGradient): Texture
 	context.fill();
 
 	const texture = new CanvasTexture(canvas);
+	// @ts-ignore
+	texture.colorSpace = 'srgb';
 	texture.needsUpdate = true;
 
 	texture.minFilter = LinearFilter;
@@ -82,31 +80,25 @@ export function generateGradientTexture(gradient: IGradient): Texture
 	return texture;
 }
 
-export function generateClassificationTexture(classification: IClassification): Texture 
-{
+export function generateClassificationTexture(classification: IClassification): Texture {
 	const width = 256;
 	const height = 256;
 	const size = width * height;
 
 	const data = new Uint8Array(4 * size);
 
-	for (let x = 0; x < width; x++) 
-	{
-		for (let y = 0; y < height; y++) 
-		{
+	for (let x = 0; x < width; x++) {
+		for (let y = 0; y < height; y++) {
 			const i = x + width * y;
 
 			let color;
-			if (classification[x]) 
-			{
+			if (classification[x]) {
 				color = classification[x];
 			}
-			else if (classification[x % 32]) 
-			{
+			else if (classification[x % 32]) {
 				color = classification[x % 32];
 			}
-			else 
-			{
+			else {
 				color = classification.DEFAULT;
 			}
 

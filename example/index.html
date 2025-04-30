@@ -91,7 +91,7 @@
             //     -(event.clientY / canvas.height) * 2 + 1
             // );
             // raycaster.setFromCamera(normalized, camera);
-            const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray, {pickWindowSize: 3});
+            const pickPoint = Potree.pick(pointClouds, renderer, camera, raycaster.ray, { pickWindowSize: 3 });
             console.log(pickPoint);
         };
 
@@ -114,12 +114,12 @@
                     console.log(pco);
                     pco.material.size = 1.0;
                     pco.material.shape = PointShape.CIRCLE;
-                    pco.material.inputColorEncoding = 0;
                     // pco.material.newFormat = true;
                     pco.material.pointColorType = PointColorType.INTENSITY_GRADIENT;
+                    pco.material.inputColorEncoding = 0;
                     pco.material.outputColorEncoding = 0;
-                    // pco.showBoundingBox = false;
                     pco.material.newFormat = false;
+                    // pco.showBoundingBox = true;
                     pco.material.updateShaderSource();
                     const { pcoGeometry } = pco;
                     const attrs = (pcoGeometry).loader.metadata.attributes || [];
