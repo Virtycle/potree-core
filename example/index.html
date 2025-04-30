@@ -46,9 +46,11 @@
             Vector3,
             WebGLRenderer,
             Color,
-            Box3
+            Box3,
+            DataTexture
         } from "three";
         import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+        import { ColorMapKeywords } from 'three/examples/jsm/math/Lut.js';
         import { PointCloudOctree, Potree, PointColorType, PointShape } from "../dist/index.js";
 
         const potree = new Potree();
@@ -83,6 +85,8 @@
             };
         }
 
+        const grad = ColorMapKeywords.rainbow.map(([i, c]) => [i, new Color(c)]);
+
         container.ondblclick = function (event) {
             const posNorm = getNormalizedPosition(event, renderer.domElement);
             raycaster.setFromCamera(new Vector2(posNorm.x, posNorm.y), camera);
@@ -113,14 +117,15 @@
                 .then(function (pco) {
                     console.log(pco);
                     pco.material.size = 1.0;
-                    pco.material.shape = PointShape.CIRCLE;
+                    // pco.material.shape = PointShape.CIRCLE;
+                    pco.material.shape = PointShape.PARABOLOID;
                     // pco.material.newFormat = true;
+                    // pco.material.pointColorType = PointColorType.HEIGHT;
                     pco.material.pointColorType = PointColorType.INTENSITY_GRADIENT;
                     pco.material.inputColorEncoding = 0;
                     pco.material.outputColorEncoding = 0;
                     pco.material.newFormat = false;
                     // pco.showBoundingBox = true;
-                    pco.material.updateShaderSource();
                     const { pcoGeometry } = pco;
                     const attrs = (pcoGeometry).loader.metadata.attributes || [];
                     const pos = attrs.find((item) => (item.name = 'position'));
@@ -128,6 +133,11 @@
                         new Vector3(pos.min[0], pos.min[1], pos.min[2]),
                         new Vector3(pos.max[0], pos.max[1], pos.max[2]),
                     );
+                    pco.material.heightMax = pos.max[2];
+                    pco.material.heightMin = pos.min[2];
+                    // pco.material.gradient = grad;
+                    pco.material.updateShaderSource();
+
                     const center = box.getCenter(new Vector3());
                     camera.position.set(center.x, center.y, center.z + 60);
                     controls.target.copy(center);
